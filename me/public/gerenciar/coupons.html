@@ -11,12 +11,12 @@
 <button class="btn">Criar cupom</button></form>
 <div class="g"><div id="l"></div></div></main></div><script src="../js/app.js"></script><script>
 shell('/gerenciar/coupons');
-let P=[];
+let PR=[];
 const d=ts=>new Date(ts).toLocaleDateString('pt-BR');
-function status(c){if(!c.active)return['fechado','Desativado'];if(c.expiresAt&&Date.now()>c.expiresAt)return['aberto','Expirado'];if(c.maxUses&&c.uses>=c.maxUses)return['aberto','Esgotado'];return['realizado','Ativo']}
-async function load(){const[cp,pr]=await Promise.all([api('/coupons'),api('/products')]);P=pr;
+function stt(c){if(!c.active)return['fechado','Desativado'];if(c.expiresAt&&Date.now()>c.expiresAt)return['aberto','Expirado'];if(c.maxUses&&c.uses>=c.maxUses)return['aberto','Esgotado'];return['realizado','Ativo']}
+async function load(){const[cp,pr]=await Promise.all([api('/coupons'),api('/products')]);PR=pr;
  const cur=$('#ps').value;$('#ps').innerHTML='<option value="">Todos os produtos</option>'+pr.map(p=>`<option value="${p.id}"${p.id===cur?' selected':''}>${esc(p.name)}</option>`).join('');
- $('#l').innerHTML=cp.length?cp.slice().reverse().map(c=>{const[k,t]=status(c),pn=(P.find(p=>p.id===c.productId)||{}).name;
+ $('#l').innerHTML=cp.length?cp.slice().reverse().map(c=>{const[k,t]=stt(c),pn=(PR.find(p=>p.id===c.productId)||{}).name;
   return `<div class="item"><i class="ib">${ico('ticket')}</i><div style="flex:1"><b class="k">${esc(c.code)}</b> <span class="tag">${c.type==='percent'?c.value+'%':brl(c.value)} de desconto</span> <span class="tag ${k}">${t}</span>
   <div class="mut">usos ${c.uses}${c.maxUses?'/'+c.maxUses:' (ilimitado)'}${c.expiresAt?' · até '+d(c.expiresAt):''}${c.minTotal?' · mínimo '+brl(c.minTotal):''}${c.productId?' · só '+esc(pn||'produto removido'):' · todos os produtos'}</div></div>
   <div class="acts"><button class="btn s glass gl" onclick="tg('${c.id}',${!c.active})">${c.active?'Desativar':'Ativar'}</button><button class="btn s red" onclick="del('${c.id}')">Excluir</button></div></div>`}).join(''):'<div class="empty"><img src="'+ROOT+'img/mascot.svg" alt="">Nenhum cupom. Crie o primeiro acima.</div>'}
