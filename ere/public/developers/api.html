@@ -5,7 +5,7 @@
 <p class="mut" style="margin-top:12px">Envie no header <span class="k">x-api-key</span>. Esta página só existe pelo link /developers/api.</p></div>
 <div class="g"><h2>Rotas</h2><pre id="r"></pre><h2>Exemplo em Python (requests)</h2><pre id="ex"></pre><h2>Exemplo em discord.py</h2><pre id="dc"></pre></div></main></div>
 <script src="../js/app.js"></script><script>
-shell('');api('/key').then(d=>{const U=location.origin+'/api';
+shell('');api('/key').then(d=>{const U=location.origin+'/api';k.textContent=d.key;
 ex.textContent=`import requests
 
 API = "${U}"
