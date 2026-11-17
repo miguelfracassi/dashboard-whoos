@@ -1,0 +1,60 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Developers · API</title>
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="../css/style.css"></head>
+<body><div class="frame"><div id="nav"></div><main class="panel"><div class="hd g lav deco x3"><div><h1>API do bot</h1><p class="mut">Seu bot em Python controla tudo pelo painel.</p></div><img src="../img/mascot.svg" alt=""></div>
+<div class="g lav"><h2>Sua API key</h2><p class="k" id="k">carregando...</p><br><button class="btn s" onclick="navigator.clipboard.writeText(k.textContent);toast('Key copiada')">Copiar key</button>
+<p class="mut" style="margin-top:12px">Envie no header <span class="k">x-api-key</span>. Esta página só existe pelo link /developers/api.</p></div>
+<div class="g"><h2>Rotas</h2><pre id="r"></pre><h2>Exemplo em Python (requests)</h2><pre id="ex"></pre><h2>Exemplo em discord.py</h2><pre id="dc"></pre></div></main></div>
+<script src="../js/app.js"></script><script>
+shell('');api('/key').then(d=>{const U=location.origin+'/api';k.textContent=d.key;
+ex.textContent=`import requests
+
+API = "${U}"
+KEY = "${d.key}"
+H = {"x-api-key": KEY}
+
+def call(method, path, **kw):
+    r = requests.request(method, API + path, headers=H, timeout=15, **kw)
+    return r.json()
+
+call("POST", "/products", json={"name": "VIP", "price": 19.9, "stock": 10})
+call("PATCH", f"/tickets/{ticket_id}", json={"status": "realizado"})
+print(call("GET", "/summary")["totalSold"])
+print(call("POST", "/ai", json={"messages": [{"role": "user", "content": "Quanto vendi?"}]})["reply"])`;
+dc.textContent=`import aiohttp, discord
+from discord.ext import commands
+
+API = "${U}"
+KEY = "${d.key}"
+
+async def api(method, path, **kw):
+    async with aiohttp.ClientSession(headers={"x-api-key": KEY}) as s:
+        async with s.request(method, API + path, **kw) as r:
+            return await r.json()
+
+bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
+
+@bot.command()
+async def total(ctx):
+    d = await api("GET", "/summary")
+    await ctx.send(f"Total vendido: R$ {d['totalSold']:.2f}")
+
+@bot.command()
+async def ia(ctx, *, texto):
+    d = await api("POST", "/ai", json={"messages": [{"role": "user", "content": texto}]})
+    await ctx.send(d["reply"])`}).catch(e=>k.textContent=e.message);
+r.textContent=`GET    /api/summary                resumo geral e total vendido
+GET    /api/categories             listar categorias
+POST   /api/categories             criar {name}
+PUT    /api/categories/:id         renomear {name}
+DELETE /api/categories/:id         excluir (produtos ficam sem categoria)
+GET    /api/products               listar
+POST   /api/products               criar {name, price, stock, description, categoryId, unlimited}
+PUT    /api/products/:id           editar (inclui categoryId e unlimited: true|false)
+DELETE /api/products/:id           excluir
+GET    /api/tickets?status=aberto  listar (aberto|fechado|realizado)
+POST   /api/tickets                abrir {subject, customer, message}
+PATCH  /api/tickets/:id            {status: "fechado" | "realizado" | "aberto"}
+DELETE /api/tickets/:id            excluir
+GET    /api/sales                  vendas
+POST   /api/sales                  registrar {productId, quantity}
+POST   /api/ai                     {messages:[{role,content}]} → IA Groq`</script></body></html>
