@@ -1,0 +1,112 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Developers · API</title>
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="../css/style.css"></head>
+<body><div class="frame"><div id="nav"></div><main class="panel"><div class="hd g lav deco x3"><div><h1>API do bot</h1><p class="mut">Seu bot em Python controla tudo pelo painel.</p></div><img src="../img/mascot.svg" alt=""></div>
+<div class="g lav"><h2>Sua API key</h2><p class="k" id="k">carregando...</p><br><button class="btn s" onclick="navigator.clipboard.writeText(k.textContent);toast('Key copiada')">Copiar key</button>
+<p class="mut" style="margin-top:12px">Envie no header <span class="k">x-api-key</span>. Esta página só existe pelo link /developers/api.</p></div>
+<div class="g"><h2>Rotas</h2><pre id="r"></pre><h2>Exemplo em Python (requests)</h2><pre id="ex"></pre><h2>Compra com cupom no Discord (discord.py)</h2><pre id="dc"></pre></div></main></div>
+<script src="../js/app.js"></script><script>
+shell('');
+api('/key').then(d=>{const U=location.origin+'/api';k.textContent=d.key;
+ex.textContent=`import requests
+
+API = "${U}"
+KEY = "${d.key}"
+H = {"x-api-key": KEY}
+
+def call(method, path, **kw):
+    r = requests.request(method, API + path, headers=H, timeout=15, **kw)
+    return r.json()
+
+# 1) resumo do pedido (com ou sem cupom) - ainda nao abre ticket
+q = call("POST", "/quote", json={"productId": "ID_DO_PRODUTO", "quantity": 1, "coupon": "VIP10"})
+print(q["subtotal"], q["discount"], q["total"], q.get("couponError"))
+
+# 2) abre o ticket ja com o desconto aplicado
+call("POST", "/tickets", json={"subject": "Compra: VIP", "customer": "fulano#0001",
+     "productId": "ID_DO_PRODUTO", "quantity": 1, "coupon": "VIP10"})
+
+print(call("GET", "/summary")["totalSold"])`;
+dc.textContent=`import aiohttp, discord
+from discord.ext import commands
+
+API = "${U}"
+KEY = "${d.key}"
+
+async def api(method, path, **kw):
+    async with aiohttp.ClientSession(headers={"x-api-key": KEY}) as s:
+        async with s.request(method, API + path, **kw) as r:
+            return await r.json()
+
+def resumo(q):
+    t = f"**{q['productName']}** x {q['quantity']}\\nSubtotal: R$ {q['subtotal']:.2f}\\n"
+    if q.get("coupon"):
+        t += f"Cupom {q['coupon']}: -R$ {q['discount']:.2f}\\n"
+    return t + f"**Total: R$ {q['total']:.2f}**"
+
+class CupomModal(discord.ui.Modal, title="Cupom de desconto"):
+    code = discord.ui.TextInput(label="Codigo do cupom")
+
+    def __init__(self, view):
+        super().__init__()
+        self.v = view
+
+    async def on_submit(self, i: discord.Interaction):
+        q = await api("POST", "/quote", json={"productId": self.v.pid, "quantity": self.v.qty, "coupon": self.code.value})
+        if q.get("couponError"):
+            return await i.response.send_message("❌ " + q["couponError"], ephemeral=True)
+        self.v.q = q
+        await i.response.edit_message(content=resumo(q) + "\\n✅ Cupom aplicado! Abrir o ticket?", view=self.v)
+
+class Checkout(discord.ui.View):
+    def __init__(self, pid, qty, q):
+        super().__init__(timeout=300)
+        self.pid, self.qty, self.q = pid, qty, q
+
+    @discord.ui.button(label="Tenho cupom", style=discord.ButtonStyle.secondary)
+    async def cupom(self, i: discord.Interaction, b: discord.ui.Button):
+        await i.response.send_modal(CupomModal(self))
+
+    @discord.ui.button(label="Abrir ticket", style=discord.ButtonStyle.success)
+    async def abrir(self, i: discord.Interaction, b: discord.ui.Button):
+        perms = {i.guild.default_role: discord.PermissionOverwrite(view_channel=False),
+                 i.user: discord.PermissionOverwrite(view_channel=True, send_messages=True)}
+        t = await api("POST", "/tickets", json={"subject": "Compra: " + self.q["productName"],
+            "customer": str(i.user), "userId": str(i.user.id), "productId": self.pid,
+            "quantity": self.qty, "coupon": self.q.get("coupon", "")})
+        if t.get("error"):
+            return await i.response.send_message("❌ " + t["error"], ephemeral=True)
+        ch = await i.guild.create_text_channel("ticket-" + i.user.name, overwrites=perms)
+        await ch.send(i.user.mention + "\\n" + resumo(self.q))
+        await i.response.edit_message(content="Ticket aberto em " + ch.mention, view=None)
+
+bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
+
+@bot.command()
+async def comprar(ctx, produto_id: str, quantidade: int = 1):
+    q = await api("POST", "/quote", json={"productId": produto_id, "quantity": quantidade})
+    if q.get("error"):
+        return await ctx.send("❌ " + q["error"])
+    await ctx.send(resumo(q) + "\\nTem um cupom de desconto?", view=Checkout(produto_id, quantidade, q))`}).catch(e=>k.textContent=e.message);
+r.textContent=`GET    /api/summary                resumo geral e total vendido
+GET    /api/categories             listar categorias
+POST   /api/categories             criar {name}
+PUT    /api/categories/:id         renomear {name}
+DELETE /api/categories/:id         excluir (produtos ficam sem categoria)
+GET    /api/products               listar
+POST   /api/products               criar {name, price, stock, description, categoryId, unlimited}
+PUT    /api/products/:id           editar (inclui categoryId e unlimited: true|false)
+DELETE /api/products/:id           excluir
+GET    /api/coupons                listar cupons
+POST   /api/coupons                criar {code, type: percent|fixed, value, maxUses, expiresAt, minTotal, productId}
+PUT    /api/coupons/:id            editar {active, value, maxUses, expiresAt...}
+DELETE /api/coupons/:id            excluir
+POST   /api/quote                  {productId, quantity, coupon} → resumo com desconto
+                                   (cupom invalido: volta couponError e o total sem desconto)
+GET    /api/tickets?status=aberto  listar (aberto|fechado|realizado)
+POST   /api/tickets                abrir {subject, customer, message, productId, quantity, coupon}
+                                   (com productId o ticket guarda o pedido e aplica o cupom)
+PATCH  /api/tickets/:id            {status: "fechado" | "realizado" | "aberto"}
+DELETE /api/tickets/:id            excluir
+GET    /api/sales                  vendas
+POST   /api/sales                  registrar {productId, quantity, coupon}
+POST   /api/ai                     {messages:[{role,content}]} → IA Groq`</script></body></html>

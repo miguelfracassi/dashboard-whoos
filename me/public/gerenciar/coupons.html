@@ -1,0 +1,26 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Gerenciar Cupons</title><link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="../css/style.css"></head>
+<body><div class="frame"><div id="nav"></div><main class="panel"><div class="hd g pink deco x4"><div><h1>Gerenciar Cupons</h1><p class="mut">Cadastre cupons aqui. O bot aplica o desconto na hora, antes de abrir o ticket.</p></div><img src="../img/mascot.svg" alt=""></div>
+<form class="g row" id="f">
+<input name="code" placeholder="Código (ex: VIP10)" required maxlength="32" style="text-transform:uppercase" autocomplete="off">
+<select name="type" aria-label="Tipo de desconto"><option value="percent">Porcentagem (%)</option><option value="fixed">Valor fixo (R$)</option></select>
+<input name="value" type="number" step="0.01" min="0.01" placeholder="Valor do desconto" required>
+<input name="maxUses" type="number" min="0" placeholder="Usos máximos (vazio = ilimitado)">
+<input name="minTotal" type="number" step="0.01" min="0" placeholder="Compra mínima R$ (opcional)">
+<select name="productId" id="ps" aria-label="Produto"></select>
+<label class="mut" style="font-size:13px">Validade até (opcional)<input name="expiresAt" type="date"></label>
+<button class="btn">Criar cupom</button></form>
+<div class="g"><div id="l"></div></div></main></div><script src="../js/app.js"></script><script>
+shell('/gerenciar/coupons');
+let P=[];
+const d=ts=>new Date(ts).toLocaleDateString('pt-BR');
+function status(c){if(!c.active)return['fechado','Desativado'];if(c.expiresAt&&Date.now()>c.expiresAt)return['aberto','Expirado'];if(c.maxUses&&c.uses>=c.maxUses)return['aberto','Esgotado'];return['realizado','Ativo']}
+async function load(){const[cp,pr]=await Promise.all([api('/coupons'),api('/products')]);P=pr;
+ const cur=$('#ps').value;$('#ps').innerHTML='<option value="">Todos os produtos</option>'+pr.map(p=>`<option value="${p.id}"${p.id===cur?' selected':''}>${esc(p.name)}</option>`).join('');
+ $('#l').innerHTML=cp.length?cp.slice().reverse().map(c=>{const[k,t]=status(c),pn=(P.find(p=>p.id===c.productId)||{}).name;
+  return `<div class="item"><i class="ib">${ico('ticket')}</i><div style="flex:1"><b class="k">${esc(c.code)}</b> <span class="tag">${c.type==='percent'?c.value+'%':brl(c.value)} de desconto</span> <span class="tag ${k}">${t}</span>
+  <div class="mut">usos ${c.uses}${c.maxUses?'/'+c.maxUses:' (ilimitado)'}${c.expiresAt?' · até '+d(c.expiresAt):''}${c.minTotal?' · mínimo '+brl(c.minTotal):''}${c.productId?' · só '+esc(pn||'produto removido'):' · todos os produtos'}</div></div>
+  <div class="acts"><button class="btn s glass gl" onclick="tg('${c.id}',${!c.active})">${c.active?'Desativar':'Ativar'}</button><button class="btn s red" onclick="del('${c.id}')">Excluir</button></div></div>`}).join(''):'<div class="empty"><img src="'+ROOT+'img/mascot.svg" alt="">Nenhum cupom. Crie o primeiro acima.</div>'}
+$('#f').onsubmit=async e=>{e.preventDefault();try{await api('/coupons',{method:'POST',body:Object.fromEntries(new FormData(e.target))});e.target.reset();toast('Cupom criado');load()}catch(x){toast(x.message)}};
+async function tg(id,a){try{await api('/coupons/'+id,{method:'PUT',body:{active:a}});toast(a?'Cupom ativado':'Cupom desativado');load()}catch(x){toast(x.message)}}
+async function del(id){if(confirm('Excluir este cupom?')){await api('/coupons/'+id,{method:'DELETE'});toast('Cupom excluído');load()}}
+window.refresh=load;load();</script></body></html>
