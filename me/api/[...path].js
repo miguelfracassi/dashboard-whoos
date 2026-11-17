@@ -7,7 +7,7 @@ let db;
 const load=async()=>{if(!SB||!SK)throw Error('Defina SUPABASE_URL e SUPABASE_SERVICE_KEY na Vercel.');
  const r=await fetch(`${SB}/rest/v1/painel?id=eq.1&select=data`,{headers:H});if(!r.ok)throw Error('Supabase: '+await r.text());
  const [row]=await r.json();db=row?.data||{};db.products??=[];db.tickets??=[];db.sales??=[];db.categories??=[];db.coupons??=[]};
-const save=async()=>{const r=await fetch(`${SB}/rest/v1/painel?id=eq.1`,{method:'PATCH',headers:H,body:JSON.stringify({data:db})});if(!r.ok)throw Error('Supabase: '+await r.text())};
+const save=async()=>{const r=await fetch(`${SB}/rest/v1/painel?on_conflict=id`,{method:'POST',headers:{...H,Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:1,data:db})});if(!r.ok)throw Error('Supabase: '+await r.text())}; // upsert: cria a linha id=1 se não existir (PATCH ignorava em silêncio)
 const find=(l,i,n)=>{const x=l.find(y=>y.id===i);if(!x)throw Error(n+' não encontrado');return x};
 const STATUS=['aberto','fechado','realizado'];
 const YES=v=>v===true||v==='true'||v==='on'||v==='1';
