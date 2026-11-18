@@ -1,0 +1,16 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Gerenciar Tickets</title><link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="../css/style.css"></head>
+<body><div class="frame"><div id="nav"></div><main class="panel"><div class="hd g lav deco x3"><div><h1>Gerenciar Tickets</h1><p class="mut">Feche tickets ou marque como realizado.</p></div><img src="../img/puzzle.svg" alt=""></div>
+<div class="tabs" id="tabs"></div>
+<div class="g"><div id="l"></div></div></main></div><script src="../js/app.js"></script><script>
+shell('/gerenciar/tickets');let f='';
+const T=[['','Todos'],['aberto','Abertos'],['fechado','Fechados'],['realizado','Realizados']];
+async function load(){$('#tabs').innerHTML=T.map(([k,t])=>`<button class="btn s ${k===f?'':'glass'}" onclick="f='${k}';load()">${t}</button>`).join('');
+ const l=(await api('/tickets'+(f?'?status='+f:''))).reverse();
+ $('#l').innerHTML=l.length?l.map(x=>`<div class="item"><i class="ib">${ico('ticket')}</i><div style="flex:1"><b>${esc(x.subject)}</b> <span class="tag ${x.status}">${x.status}</span><div class="mut">${esc(x.customer)} — ${esc(x.message)}</div>${x.order?`<div class="mut">Pedido: ${esc(x.order.productName)} × ${x.order.quantity} · ${x.order.coupon?`cupom ${esc(x.order.coupon)} (−${brl(x.order.discount)}) · `:''}<b>${brl(x.order.total)}</b></div>`:''}</div><div class="acts">
+ ${x.status!=='aberto'?`<button class="btn s glass gl" onclick="st('${x.id}','aberto')">Reabrir</button>`:''}
+ ${x.status!=='fechado'?`<button class="btn s glass gl" onclick="st('${x.id}','fechado')">Fechar</button>`:''}
+ ${x.status!=='realizado'?`<button class="btn s" onclick="st('${x.id}','realizado')">Marcar como realizado</button>`:''}
+ <button class="btn s red" onclick="del('${x.id}')">Excluir</button></div></div>`).join(''):'<div class="empty"><img src="'+ROOT+'img/mascot.svg" alt="">Nenhum ticket aqui.</div>'}
+async function st(id,s){await api('/tickets/'+id,{method:'PATCH',body:{status:s}});toast('Ticket '+s);load()}
+async function del(id){if(confirm('Excluir este ticket?')){await api('/tickets/'+id,{method:'DELETE'});toast('Ticket excluído');load()}}
+window.refresh=load;load();</script></body></html>
