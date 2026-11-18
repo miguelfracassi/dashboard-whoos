@@ -13,7 +13,7 @@
 </style></head>
 <body><div class="frame"><div id="nav"></div><main class="panel"><div class="hd g lav deco x3"><div><h1>Criar Embed</h1><p class="mut">Escolha o canal, monte os blocos, arraste para onde quiser e envie.</p></div><img src="../img/mascot.svg" alt=""></div>
 <div class="eb">
-<div class="g"><h2>Canal</h2><select id="ch"><option value="">Carregando canais...</option></select>
+<div class="g"><h2>ID do canal</h2><input id="ch" placeholder="Cole o ID do canal" inputmode="numeric" autocomplete="off">
 <h2 style="margin-top:16px">Adicionar bloco</h2><div class="pal" id="pal"></div>
 <h2 style="margin-top:16px">Cor</h2><div style="display:flex;gap:10px;align-items:center"><label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="con" checked style="width:18px;height:18px;padding:0"> Com cor</label><input type="color" id="cc" value="#ff6fb5" style="width:56px;height:40px;padding:2px"></div>
 <br><button class="btn" id="send" style="width:100%">Enviar</button></div>
@@ -45,7 +45,5 @@ cvEl.addEventListener('dragover',e=>{if(!drag)return;e.preventDefault();ph(at(e.
 cvEl.addEventListener('drop',e=>{e.preventDefault();if(!drag)return;let i=at(e.clientY);if(drag.n)add(drag.n,i);else{if(i>drag.i)i--;mv(drag.i,i)}drag=null;clr()});
 $('#con').onchange=paint;$('#cc').oninput=paint;
 $('#send').onclick=async()=>{const s=$('#send');try{s.disabled=true;await api('/embeds',{method:'POST',body:{channelId:$('#ch').value,color:$('#con').checked?$('#cc').value:null,blocks}});toast('Enviado!')}catch(e){toast(e.message)}finally{s.disabled=false}};
-api('/channels').then(l=>{const g={};l.forEach(c=>(g[c.category||'Sem categoria']??=[]).push(c));
- $('#ch').innerHTML='<option value="">Escolha o canal...</option>'+Object.entries(g).map(([k,v])=>`<optgroup label="${esc(k)}">${v.map(c=>`<option value="${c.id}">#${esc(c.name)}</option>`).join('')}</optgroup>`).join('')}).catch(e=>{$('#ch').innerHTML='<option value="">Erro ao carregar canais</option>';toast(e.message)});
 draw();
 </script></body></html>
