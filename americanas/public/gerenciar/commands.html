@@ -1,0 +1,60 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comandos</title><link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="../css/style.css">
+<style>
+.eb{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:18px;align-items:start}@media(max-width:860px){.eb{grid-template-columns:1fr}}
+.pal{display:grid;gap:8px}.pal .btn{text-align:left;cursor:grab}
+.cv{min-height:260px;border-radius:14px;background:#2b2d31;padding:14px;color:#f2f3f5;border-left:5px solid var(--cc,transparent)}.cv .empty{color:#b5bac1}
+.blk{background:#313338;border-radius:10px;padding:10px;margin-bottom:8px;display:flex;gap:8px;align-items:flex-start}
+.blk .h{cursor:grab;user-select:none;color:#b5bac1;padding:4px;font-size:18px}
+.blk .b{flex:1;min-width:0;display:grid;gap:6px}.blk small{color:#b5bac1}
+.blk textarea,.blk input{background:#1e1f22;color:#f2f3f5;border-radius:12px;padding:8px 12px}
+.blk textarea{min-height:70px;resize:vertical;font:inherit}.blk hr{border:0;border-top:1px solid #4e5058;margin:10px 0}
+.blk img{max-width:100%;max-height:200px;border-radius:10px}.blk .th img{width:72px;height:72px;object-fit:cover}
+.blk .ctl{display:flex;flex-direction:column}.blk .ctl button{background:none;border:0;color:#b5bac1;cursor:pointer;font-size:14px;padding:3px 6px}
+</style></head>
+<body><div class="frame"><div id="nav"></div><main class="panel"><div class="hd g lav deco x3"><div><h1>Comandos personalizados</h1><p class="mut">Crie slash commands que respondem com componentes, dropdowns e dão cargos.</p></div><img src="../img/mascot.svg" alt=""></div>
+<div class="g"><h2>Meus comandos</h2><div id="lst"></div></div>
+<div class="eb">
+<div class="g"><h2>Comando</h2><div style="display:grid;gap:8px"><input id="cn" placeholder="nome (ex: personalizado)" maxlength="32" autocomplete="off"><input id="cd" placeholder="Descrição" maxlength="100"><select id="ce"><option value="1">Resposta efêmera (só quem usou vê)</option><option value="0">Resposta normal (todos veem)</option></select><label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="ca" style="width:18px;height:18px;padding:0"> Só administradores</label><input id="cr" placeholder="ID do cargo a dar ao usar (opcional)" inputmode="numeric"></div>
+<h2 style="margin-top:16px">Adicionar bloco</h2><div class="pal" id="pal"></div>
+<h2 style="margin-top:16px">Cor</h2><div style="display:flex;gap:10px;align-items:center"><label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="con" checked style="width:18px;height:18px;padding:0"> Com cor</label><input type="color" id="cc" value="#ff6fb5" style="width:56px;height:40px;padding:2px"></div>
+<br><button class="btn" id="send" style="width:100%">Salvar e publicar</button><button class="btn glass gl" style="width:100%;margin-top:8px" onclick="fresh()">Novo comando</button></div>
+<div class="g"><h2>Mensagem</h2><div class="cv" id="cv"></div><h2 style="margin-top:18px">Dropdown (opcional)</h2><p class="mut" style="margin-bottom:8px">Cada opção pode dar ou tirar um cargo de quem selecionar.</p><input id="sp" placeholder="Texto do dropdown"><div id="so" style="margin-top:8px"></div><button class="btn s glass gl" onclick="addOpt()">+ Opção</button></div></div>
+</main></div><script src="../js/app.js"></script><script>
+shell('/gerenciar/commands');
+const TY={text:'Texto',image:'Imagem',sep:'Separador',long:'Separador longo',thumb:'Thumbnail'};
+let blocks=[{t:'text',v:''}],drag=null;
+const mk=t=>t==='text'?{t,v:''}:t==='image'?{t,u:''}:t==='thumb'?{t,v:'',u:''}:{t};
+const add=(t,i=blocks.length)=>{blocks.splice(i,0,mk(t));draw()};
+const mv=(i,j)=>{if(j<0||j>=blocks.length)return;blocks.splice(j,0,blocks.splice(i,1)[0]);draw()};
+const rm=i=>{blocks.splice(i,1);draw()};
+const paint=()=>$('#cv').style.setProperty('--cc',$('#con').checked?$('#cc').value:'transparent');
+const img=(i,u)=>`<input placeholder="URL da imagem (https://...)" value="${esc(u)}" onchange="blocks[${i}].u=this.value;draw()">`;
+const body=(b,i)=>`<small>${TY[b.t]}</small>`+(b.t==='text'?`<textarea placeholder="Texto (aceita **negrito**, # título, listas...)" oninput="blocks[${i}].v=this.value">${esc(b.v)}</textarea>`
+ :b.t==='image'?img(i,b.u)+(b.u?`<img src="${esc(b.u)}" alt="">`:'')
+ :b.t==='thumb'?`<div class="th" style="display:flex;gap:10px;align-items:flex-start"><div style="flex:1;display:grid;gap:6px"><textarea placeholder="Texto ao lado da thumbnail" oninput="blocks[${i}].v=this.value">${esc(b.v)}</textarea>${img(i,b.u)}</div>${b.u?`<img src="${esc(b.u)}" alt="">`:''}</div>`
+ :`<hr${b.t==='long'?' style="margin:28px 0"':''}>`);
+function draw(){paint();$('#cv').innerHTML=blocks.length?blocks.map((b,i)=>`<div class="blk" data-i="${i}"><span class="h" title="Arraste para mover" onmousedown="this.parentNode.draggable=true">⠿</span><div class="b">${body(b,i)}</div><div class="ctl"><button onclick="mv(${i},${i-1})" aria-label="Subir">▲</button><button onclick="mv(${i},${i+1})" aria-label="Descer">▼</button><button onclick="rm(${i})" aria-label="Remover">✕</button></div></div>`).join(''):'<div class="empty">Adicione blocos ao lado ou arraste para cá.</div>'}
+$('#pal').innerHTML=Object.entries(TY).map(([k,t])=>`<button class="btn s glass gl" draggable="true" data-t="${k}">+ ${t}</button>`).join('');
+document.querySelectorAll('#pal button').forEach(b=>{b.onclick=()=>add(b.dataset.t);b.ondragstart=e=>{drag={n:b.dataset.t};e.dataTransfer.setData('text/plain','n')}});
+const clr=()=>document.querySelectorAll('.blk').forEach(x=>x.style.boxShadow='');
+const at=y=>{const bs=[...document.querySelectorAll('.blk')];for(let i=0;i<bs.length;i++){const r=bs[i].getBoundingClientRect();if(y<r.top+r.height/2)return i}return bs.length};
+function ph(i){clr();const bs=document.querySelectorAll('.blk');if(i<bs.length)bs[i].style.boxShadow='0 -3px 0 #ff6fb5';else if(bs.length)bs[bs.length-1].style.boxShadow='0 3px 0 #ff6fb5'}
+const cvEl=$('#cv');
+cvEl.addEventListener('dragstart',e=>{const b=e.target.closest&&e.target.closest('.blk');if(b){drag={i:+b.dataset.i};e.dataTransfer.setData('text/plain','m')}});
+cvEl.addEventListener('dragend',()=>{document.querySelectorAll('.blk').forEach(x=>x.draggable=false);clr();drag=null});
+cvEl.addEventListener('dragover',e=>{if(!drag)return;e.preventDefault();ph(at(e.clientY))});
+cvEl.addEventListener('drop',e=>{e.preventDefault();if(!drag)return;let i=at(e.clientY);if(drag.n)add(drag.n,i);else{if(i>drag.i)i--;mv(drag.i,i)}drag=null;clr()});
+$('#con').onchange=paint;$('#cc').oninput=paint;
+let opts=[],eid='',CM=[];
+const drawO=()=>{$('#so').innerHTML=opts.map((o,i)=>`<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:6px;margin-bottom:6px"><input placeholder="Nome" value="${esc(o.label)}" oninput="opts[${i}].label=this.value"><input placeholder="Descrição" value="${esc(o.description)}" oninput="opts[${i}].description=this.value"><input placeholder="ID do cargo" value="${esc(o.roleId)}" oninput="opts[${i}].roleId=this.value"><button class="btn s red" onclick="opts.splice(${i},1);drawO()">✕</button></div>`).join('')};
+const addOpt=()=>{opts.push({label:'',description:'',roleId:''});drawO()};
+function fresh(){eid='';blocks=[{t:'text',v:''}];opts=[];['cn','cd','cr','sp'].forEach(k=>$('#'+k).value='');$('#ce').value='1';$('#ca').checked=false;draw();drawO()}
+function ed(id){const c=CM.find(x=>x.id===id);eid=c.id;$('#cn').value=c.name;$('#cd').value=c.description;$('#ce').value=c.ephemeral?'1':'0';$('#ca').checked=c.adminOnly;$('#cr').value=c.giveRole||'';$('#con').checked=!!c.color;if(c.color)$('#cc').value=c.color;blocks=JSON.parse(JSON.stringify(c.blocks||[]));opts=JSON.parse(JSON.stringify((c.select&&c.select.options)||[]));$('#sp').value=(c.select&&c.select.placeholder)||'';draw();drawO();scrollTo({top:0,behavior:'smooth'})}
+async function loadL(){try{CM=await api('/commands');$('#lst').innerHTML=CM.length?CM.map(c=>`<div class="item"><i class="ib">${ico('chat')}</i><div style="flex:1"><b class="k">/${esc(c.name)}</b> <span class="tag">${c.ephemeral?'efêmera':'normal'}</span>${c.adminOnly?' <span class="tag aberto">admin</span>':''}${c.giveRole?' <span class="tag realizado">dá cargo</span>':''}${c.select?' <span class="tag fechado">dropdown</span>':''}<div class="mut">${esc(c.description)}</div></div><div class="acts"><button class="btn s glass gl" onclick="ed('${c.id}')">Editar</button><button class="btn s red" onclick="delc('${c.id}')">Excluir</button></div></div>`).join(''):'<div class="empty">Nenhum comando ainda.</div>'}catch(e){toast(e.message)}}
+const pub=async()=>{try{await api('/sync',{method:'POST'});toast('Publicado no Discord!')}catch(e){toast('Salvo, mas não publicou: '+e.message)}};
+async function delc(id){if(!confirm('Excluir este comando?'))return;try{await api('/commands/'+id,{method:'DELETE'});if(eid===id)fresh();await loadL();pub()}catch(e){toast(e.message)}}
+$('#send').onclick=async()=>{const s=$('#send');try{s.disabled=true;
+ const c=await api('/commands',{method:'POST',body:{id:eid,name:$('#cn').value,description:$('#cd').value,ephemeral:$('#ce').value==='1',adminOnly:$('#ca').checked,giveRole:$('#cr').value,color:$('#con').checked?$('#cc').value:null,blocks,select:{placeholder:$('#sp').value,options:opts}}});
+ eid=c.id;await loadL();await pub()}catch(e){toast(e.message)}finally{s.disabled=false}};
+draw();drawO();loadL();
+</script></body></html>
